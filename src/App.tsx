@@ -12,9 +12,11 @@ import { Login, Register, ForgotPassword, ResetPassword } from './pages/auth'
 import { Dashboard, Calendar, Records, Stats, Settings } from './pages/app'
 import { Leaderboard, UserProfile } from './pages/community'
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 function App() {
   return (
-    <Router>
+    <Router basename={basename}>
       <PWAInstallPrompt />
       <Routes>
         {/* Public Routes */}
