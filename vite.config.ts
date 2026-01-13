@@ -5,6 +5,7 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/life-tracker/',
   plugins: [
     react(),
     VitePWA({
@@ -18,21 +19,21 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: '/life-tracker/',
+        start_url: '/life-tracker/',
         icons: [
           {
-            src: '/pwa-192x192.svg',
+            src: '/life-tracker/pwa-192x192.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
           },
           {
-            src: '/pwa-512x512.svg',
+            src: '/life-tracker/pwa-512x512.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
           },
           {
-            src: '/pwa-512x512.svg',
+            src: '/life-tracker/pwa-512x512.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'any maskable',
