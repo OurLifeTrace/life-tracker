@@ -169,6 +169,23 @@ export default function Stats() {
     const sleepRecords = records.filter((r) => r.type === 'sleep')
     const dailySleep: Record<string, { duration: number; count: number }> = {}
 
+    // Helper to calculate duration from bedtime and wake_time
+    const calculateDuration = (bedtime: string, wakeTime: string): number => {
+      if (!bedtime || !wakeTime) return 0
+      const [bedHour, bedMin] = bedtime.split(':').map(Number)
+      const [wakeHour, wakeMin] = wakeTime.split(':').map(Number)
+
+      let bedMinutes = bedHour * 60 + bedMin
+      let wakeMinutes = wakeHour * 60 + wakeMin
+
+      // If wake time is earlier than bed time, assume it's the next day
+      if (wakeMinutes <= bedMinutes) {
+        wakeMinutes += 24 * 60
+      }
+
+      return (wakeMinutes - bedMinutes) / 60 // Return hours
+    }
+
     // Get past 30 days
     const today = new Date()
     for (let i = 29; i >= 0; i--) {
@@ -181,10 +198,13 @@ export default function Stats() {
     sleepRecords.forEach((r) => {
       const date = r.recorded_at.split('T')[0]
       if (dailySleep.hasOwnProperty(date)) {
-        const data = r.data as { duration?: number }
-        if (data.duration) {
-          dailySleep[date].duration += data.duration
-          dailySleep[date].count += 1
+        const data = r.data as { bedtime?: string; wake_time?: string }
+        if (data.bedtime && data.wake_time) {
+          const duration = calculateDuration(data.bedtime, data.wake_time)
+          if (duration > 0) {
+            dailySleep[date].duration += duration
+            dailySleep[date].count += 1
+          }
         }
       }
     })
@@ -193,7 +213,7 @@ export default function Stats() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, { duration }]) => ({
         date: new Date(date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
-        duration: Math.round(duration / 60 * 10) / 10, // Convert minutes to hours with 1 decimal
+        duration: Math.round(duration * 10) / 10, // Round to 1 decimal
       }))
   }, [records])
 
