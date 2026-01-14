@@ -469,9 +469,9 @@ export default function Leaderboard() {
           ) : (
             <div className="space-y-2">
               {/* Date labels */}
-              <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                <div className="w-16 shrink-0" />
-                <div className="flex-1 flex justify-between px-0.5">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                <div className="w-24 shrink-0" />
+                <div className="flex-1 flex justify-between px-1">
                   <span>{monthStart.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}</span>
                   <span>今天</span>
                 </div>
@@ -479,28 +479,28 @@ export default function Leaderboard() {
 
               {/* User rows */}
               {activityData.map((activity) => (
-                <div key={activity.user.id} className="flex items-center gap-1">
-                  <div className="w-16 shrink-0 flex items-center gap-1">
-                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-[8px] font-bold overflow-hidden">
+                <div key={activity.user.id} className="flex items-center gap-2">
+                  <div className="w-24 shrink-0 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
                       {activity.user.avatar_url ? (
                         <img src={activity.user.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         activity.user.username?.[0]?.toUpperCase() || '?'
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-600 truncate">
+                    <span className="text-xs text-gray-700 truncate font-medium">
                       {activity.user.username || '匿名'}
                     </span>
                   </div>
-                  <div className="flex-1 flex gap-[1px]">
+                  <div className="flex-1 flex gap-[2px]">
                     {days.map((day) => {
                       const count = activity[dataKey][day] || 0
                       return (
                         <div
                           key={day}
-                          className={`flex-1 h-4 rounded-[2px] ${colorFn(count)} cursor-default group relative`}
+                          className={`flex-1 h-5 rounded-sm ${colorFn(count)} cursor-default group relative`}
                         >
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-gray-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                             {new Date(day).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}: {count}{tooltipSuffix}
                           </div>
                         </div>
@@ -511,11 +511,11 @@ export default function Leaderboard() {
               ))}
 
               {/* Legend */}
-              <div className="flex items-center justify-end gap-1.5 mt-2 pt-2 border-t border-gray-100">
+              <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-100">
                 {legendItems.map((item, i) => (
-                  <div key={i} className="flex items-center gap-0.5">
-                    <div className={`w-3 h-3 rounded-sm ${item.color}`} />
-                    <span className="text-[9px] text-gray-400">{item.label}</span>
+                  <div key={i} className="flex items-center gap-1">
+                    <div className={`w-4 h-4 rounded-sm ${item.color}`} />
+                    <span className="text-xs text-gray-500">{item.label}</span>
                   </div>
                 ))}
               </div>

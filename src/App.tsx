@@ -8,7 +8,7 @@ import PWAInstallPrompt from './components/common/PWAInstallPrompt'
 
 // Pages
 import Home from './pages/Home'
-import { Login, Register, ForgotPassword, ResetPassword } from './pages/auth'
+import { Login, Register, ForgotPassword, ResetPassword, VerifyEmail } from './pages/auth'
 import { Dashboard, Calendar, Records, Stats, Settings } from './pages/app'
 import { Leaderboard, UserProfile } from './pages/community'
 
@@ -30,6 +30,9 @@ function App() {
           <Route path="reset-password" element={<ResetPassword />} />
           <Route index element={<Navigate to="login" replace />} />
         </Route>
+
+        {/* Standalone Auth Pages (no layout wrapper) */}
+        <Route path="/auth/verify-email" element={<VerifyEmail />} />
 
         {/* App Routes (Protected) */}
         <Route path="/app" element={<AppLayout />}>
