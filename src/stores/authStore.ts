@@ -131,9 +131,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   resetPassword: async (email: string) => {
     try {
-      const baseUrl = import.meta.env.BASE_URL || '/'
+      // Build redirect URL from current location, preserving base path
+      const currentUrl = new URL(window.location.href)
+      currentUrl.pathname = currentUrl.pathname.replace(/\/auth\/.*$|\/app\/.*$/, '') + '/auth/reset-password'
+      currentUrl.search = ''
+      currentUrl.hash = ''
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}${baseUrl}auth/reset-password`,
+        redirectTo: currentUrl.toString(),
       })
 
       if (error) {
