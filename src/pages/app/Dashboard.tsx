@@ -12,21 +12,24 @@ import {
   Smile,
   TrendingUp,
   Calendar,
-  ChevronRight
+  ChevronRight,
+  CircleDot,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useRecordStore } from '@/stores/recordStore'
 import { useUIStore } from '@/stores/uiStore'
 import { RECORD_TYPE_CONFIG } from '@/lib/constants'
 
+// Order: 飲食、睡眠、運動、親密、心情、藥物、排便、飲水
 const quickActions = [
   { type: 'meal', icon: Utensils, label: '飲食', color: 'from-amber-400 to-orange-500', bg: 'bg-amber-50' },
   { type: 'sleep', icon: Moon, label: '睡眠', color: 'from-indigo-400 to-purple-500', bg: 'bg-indigo-50' },
   { type: 'exercise', icon: Dumbbell, label: '運動', color: 'from-emerald-400 to-teal-500', bg: 'bg-emerald-50' },
-  { type: 'water', icon: Droplets, label: '飲水', color: 'from-cyan-400 to-blue-500', bg: 'bg-cyan-50' },
+  { type: 'intimacy', icon: Heart, label: '親密', color: 'from-pink-400 to-rose-500', bg: 'bg-pink-50' },
   { type: 'mood', icon: Smile, label: '心情', color: 'from-purple-400 to-pink-500', bg: 'bg-purple-50' },
   { type: 'medication', icon: Pill, label: '藥物', color: 'from-blue-400 to-indigo-500', bg: 'bg-blue-50' },
-  { type: 'intimacy', icon: Heart, label: '親密', color: 'from-pink-400 to-rose-500', bg: 'bg-pink-50' },
+  { type: 'bowel', icon: CircleDot, label: '排便', color: 'from-amber-600 to-yellow-700', bg: 'bg-amber-100' },
+  { type: 'water', icon: Droplets, label: '飲水', color: 'from-cyan-400 to-blue-500', bg: 'bg-cyan-50' },
 ]
 
 const container = {

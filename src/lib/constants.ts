@@ -9,6 +9,18 @@ export const RECORD_TYPES = {
   MOOD: 'mood',
 } as const
 
+// Standard order for display: 飲食、睡眠、運動、親密、心情、藥物、排便、飲水
+export const RECORD_TYPE_ORDER = [
+  'meal',
+  'sleep',
+  'exercise',
+  'intimacy',
+  'mood',
+  'medication',
+  'bowel',
+  'water',
+] as const
+
 export const RECORD_TYPE_CONFIG = {
   meal: {
     label: '飲食',

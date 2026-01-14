@@ -15,6 +15,7 @@ import {
   Line,
   Area,
   AreaChart,
+  ComposedChart,
 } from 'recharts'
 import {
   TrendingUp,
@@ -162,6 +163,39 @@ export default function Stats() {
         }
       })
   }, [filteredRecords])
+
+  // Sleep duration trend (past 30 days)
+  const sleepDurationTrend = useMemo(() => {
+    const sleepRecords = records.filter((r) => r.type === 'sleep')
+    const dailySleep: Record<string, { duration: number; count: number }> = {}
+
+    // Get past 30 days
+    const today = new Date()
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      dailySleep[dateStr] = { duration: 0, count: 0 }
+    }
+
+    sleepRecords.forEach((r) => {
+      const date = r.recorded_at.split('T')[0]
+      if (dailySleep.hasOwnProperty(date)) {
+        const data = r.data as { duration?: number }
+        if (data.duration) {
+          dailySleep[date].duration += data.duration
+          dailySleep[date].count += 1
+        }
+      }
+    })
+
+    return Object.entries(dailySleep)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { duration }]) => ({
+        date: new Date(date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
+        duration: Math.round(duration / 60 * 10) / 10, // Convert minutes to hours with 1 decimal
+      }))
+  }, [records])
 
   // Meal trend (past 30 days)
   const mealTrend = useMemo(() => {
@@ -428,7 +462,7 @@ export default function Stats() {
             <BarChart data={recordsByDay}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip
                 formatter={(value) => [`${value} 筆`, '記錄數']}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
@@ -500,7 +534,7 @@ export default function Stats() {
               <LineChart data={sleepTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} />
+                <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} allowDecimals={false} />
                 <Tooltip
                   formatter={(value) => [`${value}/5`, '睡眠品質']}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
@@ -535,36 +569,77 @@ export default function Stats() {
         </h3>
         {mealTrend.some(d => d.count > 0) ? (
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={mealTrend}>
-              <defs>
-                <linearGradient id="mealGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
+            <ComposedChart data={mealTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 10 }}
                 interval={4}
               />
-              <YAxis tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip
                 formatter={(value) => [`${value} 餐`, '用餐次數']}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
               />
-              <Area
+              <Bar dataKey="count" fill="#fcd34d" radius={[2, 2, 0, 0]} />
+              <Line
                 type="monotone"
                 dataKey="count"
                 stroke="#f59e0b"
-                fill="url(#mealGradient)"
                 strokeWidth={2}
+                dot={false}
               />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-[200px] flex items-center justify-center text-gray-400">
             暫無飲食記錄
+          </div>
+        )}
+      </motion.div>
+
+      {/* Charts Row 3.5 - Sleep Duration Trend (Full Width) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.85 }}
+        className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+      >
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Moon className="w-5 h-5 text-indigo-500" />
+          睡眠時長趨勢 (過去30天)
+        </h3>
+        {sleepDurationTrend.some(d => d.duration > 0) ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart data={sleepDurationTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10 }}
+                interval={4}
+              />
+              <YAxis
+                tick={{ fontSize: 12 }}
+                domain={[0, 12]}
+                tickFormatter={(value) => `${value}h`}
+              />
+              <Tooltip
+                formatter={(value) => [`${value} 小時`, '睡眠時長']}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+              />
+              <Bar dataKey="duration" fill="#a5b4fc" radius={[2, 2, 0, 0]} />
+              <Line
+                type="monotone"
+                dataKey="duration"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[200px] flex items-center justify-center text-gray-400">
+            暫無睡眠記錄
           </div>
         )}
       </motion.div>

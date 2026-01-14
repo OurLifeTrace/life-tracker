@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -295,8 +297,10 @@ export default function Leaderboard() {
       const totalUsers = publicUsers.length
 
       const dayCounts: Record<string, number> = {}
+      const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
       allRecords.forEach(r => {
-        const day = new Date(r.recorded_at).toLocaleDateString('zh-TW', { weekday: 'long' })
+        const dayIndex = new Date(r.recorded_at).getDay()
+        const day = weekdayNames[dayIndex]
         dayCounts[day] = (dayCounts[day] || 0) + 1
       })
       const mostActiveDay = Object.entries(dayCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-'
@@ -478,12 +482,12 @@ export default function Leaderboard() {
     return 'bg-emerald-600'
   }
 
-  // Get meal compliance color (3 meals = green, less = blue, more = red)
+  // Get meal compliance color (3 meals = green, less = red, more = yellow)
   const getMealColor = (count: number) => {
     if (count === 0) return 'bg-gray-100'
-    if (count < 3) return count === 1 ? 'bg-blue-200' : 'bg-blue-400'
+    if (count < 3) return count === 1 ? 'bg-red-300' : 'bg-red-400'
     if (count === 3) return 'bg-emerald-500'
-    return count === 4 ? 'bg-orange-400' : 'bg-red-500'
+    return count === 4 ? 'bg-yellow-400' : 'bg-yellow-500'
   }
 
   // Get sleep compliance color (1 record = good)
@@ -639,9 +643,9 @@ export default function Leaderboard() {
           colorFn={getMealColor}
           legendItems={[
             { color: 'bg-gray-100', label: '無' },
-            { color: 'bg-blue-300', label: '<3餐' },
+            { color: 'bg-red-400', label: '<3餐' },
             { color: 'bg-emerald-500', label: '3餐' },
-            { color: 'bg-red-500', label: '>3餐' },
+            { color: 'bg-yellow-400', label: '>3餐' },
           ]}
           tooltipSuffix=" 餐"
         />
@@ -696,12 +700,14 @@ export default function Leaderboard() {
     gradient,
     data,
     yAxisLabel,
+    chartType = 'line',
   }: {
     title: string
     icon: React.ComponentType<{ className?: string }>
     gradient: string
     data: TrendDataPoint[]
     yAxisLabel: string
+    chartType?: 'line' | 'bar'
   }) => {
     const hasData = data.some(d =>
       trendUsers.some(u => (d[u.id] as number) > 0)
@@ -736,34 +742,63 @@ export default function Leaderboard() {
           ) : (
             <>
               <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10 }}
-                    interval={6}
-                  />
-                  <YAxis tick={{ fontSize: 10 }} label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fontSize: 10 }} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
-                    formatter={(value, name) => {
-                      const trendUser = trendUsers.find(u => u.id === name)
-                      return [value ?? 0, trendUser?.username || '匿名']
-                    }}
-                    labelFormatter={(label) => `日期: ${label}`}
-                  />
-                  {trendUsers.map((trendUser) => (
-                    <Line
-                      key={trendUser.id}
-                      type="monotone"
-                      dataKey={trendUser.id}
-                      stroke={trendUser.color}
-                      strokeWidth={2}
-                      dot={false}
-                      name={trendUser.id}
+                {chartType === 'bar' ? (
+                  <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10 }}
+                      interval={6}
                     />
-                  ))}
-                </LineChart>
+                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fontSize: 10 }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                      formatter={(value, name) => {
+                        const trendUser = trendUsers.find(u => u.id === name)
+                        return [value ?? 0, trendUser?.username || '匿名']
+                      }}
+                      labelFormatter={(label) => `日期: ${label}`}
+                    />
+                    {trendUsers.map((trendUser) => (
+                      <Bar
+                        key={trendUser.id}
+                        dataKey={trendUser.id}
+                        fill={trendUser.color}
+                        name={trendUser.id}
+                        radius={[2, 2, 0, 0]}
+                      />
+                    ))}
+                  </BarChart>
+                ) : (
+                  <LineChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10 }}
+                      interval={6}
+                    />
+                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} label={{ value: yAxisLabel, angle: -90, position: 'insideLeft', fontSize: 10 }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '12px' }}
+                      formatter={(value, name) => {
+                        const trendUser = trendUsers.find(u => u.id === name)
+                        return [value ?? 0, trendUser?.username || '匿名']
+                      }}
+                      labelFormatter={(label) => `日期: ${label}`}
+                    />
+                    {trendUsers.map((trendUser) => (
+                      <Line
+                        key={trendUser.id}
+                        type="monotone"
+                        dataKey={trendUser.id}
+                        stroke={trendUser.color}
+                        strokeWidth={2}
+                        dot={false}
+                        name={trendUser.id}
+                      />
+                    ))}
+                  </LineChart>
+                )}
               </ResponsiveContainer>
 
               {/* Legend */}
@@ -918,10 +953,6 @@ export default function Leaderboard() {
               <div className="text-xs text-white/70">總記錄數</div>
             </div>
             <div className="px-5 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
-              <div className="text-xl font-bold">{globalStats.avgRecordsPerUser}</div>
-              <div className="text-xs text-white/70">平均/人</div>
-            </div>
-            <div className="px-5 py-2 bg-white/10 backdrop-blur-sm rounded-xl">
               <div className="text-xl font-bold">{globalStats.mostActiveDay}</div>
               <div className="text-xs text-white/70">最活躍</div>
             </div>
@@ -983,6 +1014,7 @@ export default function Leaderboard() {
                   gradient="from-emerald-400 to-teal-500"
                   data={trendData.exercise}
                   yAxisLabel="次"
+                  chartType="bar"
                 />
                 <TrendChart
                   title="飲水趨勢"
@@ -997,6 +1029,7 @@ export default function Leaderboard() {
                   gradient="from-pink-400 to-rose-500"
                   data={trendData.intimacy}
                   yAxisLabel="次"
+                  chartType="bar"
                 />
               </div>
             </div>
