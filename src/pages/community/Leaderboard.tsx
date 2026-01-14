@@ -29,6 +29,7 @@ import {
   Zap,
   CalendarDays,
   TrendingUp,
+  CircleDot,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -68,6 +69,8 @@ interface TrendChartData {
   exercise: TrendDataPoint[]
   water: TrendDataPoint[]
   intimacy: TrendDataPoint[]
+  medication: TrendDataPoint[]
+  bowel: TrendDataPoint[]
 }
 
 interface TrendUser {
@@ -104,6 +107,8 @@ export default function Leaderboard() {
     exercise: [],
     water: [],
     intimacy: [],
+    medication: [],
+    bowel: [],
   })
   const [trendUsers, setTrendUsers] = useState<TrendUser[]>([])
   const [globalStats, setGlobalStats] = useState({
@@ -421,6 +426,8 @@ export default function Leaderboard() {
       const exerciseTrend = initTrendData()
       const waterTrend = initTrendData()
       const intimacyTrend = initTrendData()
+      const medicationTrend = initTrendData()
+      const bowelTrend = initTrendData()
 
       allRecords.forEach(record => {
         const userId = record.user_id
@@ -446,6 +453,12 @@ export default function Leaderboard() {
           case 'intimacy':
             intimacyTrend[dayIndex][userId] = ((intimacyTrend[dayIndex][userId] as number) || 0) + 1
             break
+          case 'medication':
+            medicationTrend[dayIndex][userId] = ((medicationTrend[dayIndex][userId] as number) || 0) + 1
+            break
+          case 'bowel':
+            bowelTrend[dayIndex][userId] = ((bowelTrend[dayIndex][userId] as number) || 0) + 1
+            break
         }
       })
 
@@ -455,6 +468,8 @@ export default function Leaderboard() {
         exercise: exerciseTrend,
         water: waterTrend,
         intimacy: intimacyTrend,
+        medication: medicationTrend,
+        bowel: bowelTrend,
       })
 
     } catch (error) {
@@ -1014,14 +1029,6 @@ export default function Leaderboard() {
                   gradient="from-emerald-400 to-teal-500"
                   data={trendData.exercise}
                   yAxisLabel="次"
-                  chartType="bar"
-                />
-                <TrendChart
-                  title="飲水趨勢"
-                  icon={Droplets}
-                  gradient="from-cyan-400 to-blue-500"
-                  data={trendData.water}
-                  yAxisLabel="次"
                 />
                 <TrendChart
                   title="親密趨勢"
@@ -1029,7 +1036,27 @@ export default function Leaderboard() {
                   gradient="from-pink-400 to-rose-500"
                   data={trendData.intimacy}
                   yAxisLabel="次"
-                  chartType="bar"
+                />
+                <TrendChart
+                  title="藥物趨勢"
+                  icon={Pill}
+                  gradient="from-blue-400 to-indigo-500"
+                  data={trendData.medication}
+                  yAxisLabel="次"
+                />
+                <TrendChart
+                  title="排便趨勢"
+                  icon={CircleDot}
+                  gradient="from-amber-500 to-yellow-600"
+                  data={trendData.bowel}
+                  yAxisLabel="次"
+                />
+                <TrendChart
+                  title="飲水趨勢"
+                  icon={Droplets}
+                  gradient="from-cyan-400 to-blue-500"
+                  data={trendData.water}
+                  yAxisLabel="次"
                 />
               </div>
             </div>

@@ -25,6 +25,7 @@ import {
   Flame,
   Utensils,
   Heart,
+  CircleDot,
 } from 'lucide-react'
 import { useRecordStore } from '@/stores/recordStore'
 import { RECORD_TYPE_CONFIG } from '@/lib/constants'
@@ -55,6 +56,13 @@ const getIntimacyHeatmapColor = (count: number) => {
   if (count === 1) return 'bg-pink-200'
   if (count === 2) return 'bg-pink-400'
   return 'bg-pink-600'
+}
+
+const getBowelHeatmapColor = (count: number) => {
+  if (count === 0) return 'bg-gray-100'
+  if (count === 1) return 'bg-amber-300'
+  if (count === 2) return 'bg-amber-500'
+  return 'bg-amber-700'
 }
 
 export default function Stats() {
@@ -294,6 +302,32 @@ export default function Stats() {
     })
 
     return Object.entries(dailyIntimacy)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }))
+  }, [records])
+
+  // Bowel daily heatmap (past 30 days)
+  const bowelHeatmap = useMemo(() => {
+    const dailyBowel: Record<string, number> = {}
+
+    // Initialize past 30 days
+    const today = new Date()
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      dailyBowel[dateStr] = 0
+    }
+
+    records.forEach((r) => {
+      if (r.type !== 'bowel') return
+      const date = r.recorded_at.split('T')[0]
+      if (dailyBowel.hasOwnProperty(date)) {
+        dailyBowel[date] = (dailyBowel[date] || 0) + 1
+      }
+    })
+
+    return Object.entries(dailyBowel)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({ date, count }))
   }, [records])
@@ -576,53 +610,11 @@ export default function Stats() {
         </motion.div>
       </div>
 
-      {/* Charts Row 3 - Meal Trend (Full Width) */}
+      {/* Charts Row 3 - Sleep Duration Trend (Full Width) */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8 }}
-        className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
-      >
-        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Utensils className="w-5 h-5 text-amber-500" />
-          飲食趨勢 (過去30天)
-        </h3>
-        {mealTrend.some(d => d.count > 0) ? (
-          <ResponsiveContainer width="100%" height={200}>
-            <ComposedChart data={mealTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10 }}
-                interval={4}
-              />
-              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-              <Tooltip
-                formatter={(value) => [`${value} 餐`, '用餐次數']}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-              />
-              <Bar dataKey="count" fill="#fcd34d" radius={[2, 2, 0, 0]} />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke="#f59e0b"
-                strokeWidth={2}
-                dot={false}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-[200px] flex items-center justify-center text-gray-400">
-            暫無飲食記錄
-          </div>
-        )}
-      </motion.div>
-
-      {/* Charts Row 3.5 - Sleep Duration Trend (Full Width) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.85 }}
         className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
       >
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -660,6 +652,48 @@ export default function Stats() {
         ) : (
           <div className="h-[200px] flex items-center justify-center text-gray-400">
             暫無睡眠記錄
+          </div>
+        )}
+      </motion.div>
+
+      {/* Charts Row 3.5 - Meal Trend (Full Width) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.85 }}
+        className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+      >
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Utensils className="w-5 h-5 text-amber-500" />
+          飲食趨勢 (過去30天)
+        </h3>
+        {mealTrend.some(d => d.count > 0) ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <ComposedChart data={mealTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10 }}
+                interval={4}
+              />
+              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+              <Tooltip
+                formatter={(value) => [`${value} 餐`, '用餐次數']}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+              />
+              <Bar dataKey="count" fill="#fcd34d" radius={[2, 2, 0, 0]} />
+              <Line
+                type="monotone"
+                dataKey="count"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                dot={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[200px] flex items-center justify-center text-gray-400">
+            暫無飲食記錄
           </div>
         )}
       </motion.div>
@@ -756,6 +790,53 @@ export default function Stats() {
             {/* Total count */}
             <div className="text-center text-sm text-gray-500">
               總計: <span className="font-bold text-pink-600">{intimacyHeatmap.reduce((sum, d) => sum + d.count, 0)}</span> 次
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Bowel Frequency Heatmap */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1 }}
+          className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+        >
+          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <CircleDot className="w-5 h-5 text-amber-600" />
+            排便頻率 (過去30天)
+          </h3>
+          <div className="space-y-2">
+            {/* Date labels */}
+            <div className="flex justify-between text-xs text-gray-400 px-1">
+              <span>{bowelHeatmap[0]?.date ? new Date(bowelHeatmap[0].date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }) : ''}</span>
+              <span>今天</span>
+            </div>
+            {/* Heatmap grid */}
+            <div className="flex gap-[3px]">
+              {bowelHeatmap.map(({ date, count }) => (
+                <div
+                  key={date}
+                  className={`flex-1 h-8 rounded-sm ${getBowelHeatmapColor(count)} transition-colors cursor-default group relative`}
+                  title={`${new Date(date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}: ${count} 次`}
+                >
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                    {new Date(date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}: {count} 次
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Legend */}
+            <div className="flex items-center justify-end gap-2 mt-3 pt-2 border-t border-gray-100">
+              <span className="text-xs text-gray-400">少</span>
+              <div className="w-4 h-4 rounded-sm bg-gray-100" />
+              <div className="w-4 h-4 rounded-sm bg-amber-300" />
+              <div className="w-4 h-4 rounded-sm bg-amber-500" />
+              <div className="w-4 h-4 rounded-sm bg-amber-700" />
+              <span className="text-xs text-gray-400">多</span>
+            </div>
+            {/* Total count */}
+            <div className="text-center text-sm text-gray-500">
+              總計: <span className="font-bold text-amber-600">{bowelHeatmap.reduce((sum, d) => sum + d.count, 0)}</span> 次
             </div>
           </div>
         </motion.div>
