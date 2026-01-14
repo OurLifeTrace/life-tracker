@@ -19,7 +19,6 @@ import {
   Dumbbell,
   Utensils,
   Heart,
-  Pill,
   Smile,
   Crown,
   Medal,
@@ -69,7 +68,6 @@ interface TrendChartData {
   exercise: TrendDataPoint[]
   water: TrendDataPoint[]
   intimacy: TrendDataPoint[]
-  medication: TrendDataPoint[]
   bowel: TrendDataPoint[]
 }
 
@@ -87,7 +85,7 @@ const categoryConfig = [
   { type: 'exercise', label: '運動健將', icon: Dumbbell, color: 'text-emerald-500', gradient: 'from-emerald-400 to-teal-500', bgLight: 'bg-emerald-50' },
   { type: 'water', label: '飲水冠軍', icon: Droplets, color: 'text-cyan-500', gradient: 'from-cyan-400 to-blue-500', bgLight: 'bg-cyan-50' },
   { type: 'mood', label: '心情記錄', icon: Smile, color: 'text-purple-500', gradient: 'from-purple-400 to-pink-500', bgLight: 'bg-purple-50' },
-  { type: 'medication', label: '用藥追蹤', icon: Pill, color: 'text-blue-500', gradient: 'from-blue-400 to-indigo-500', bgLight: 'bg-blue-50' },
+  { type: 'bowel', label: '排便追蹤', icon: CircleDot, color: 'text-amber-600', gradient: 'from-amber-500 to-yellow-600', bgLight: 'bg-amber-50' },
   { type: 'intimacy', label: '親密行為', icon: Heart, color: 'text-pink-500', gradient: 'from-pink-400 to-rose-500', bgLight: 'bg-pink-50' },
 ]
 
@@ -107,7 +105,6 @@ export default function Leaderboard() {
     exercise: [],
     water: [],
     intimacy: [],
-    medication: [],
     bowel: [],
   })
   const [trendUsers, setTrendUsers] = useState<TrendUser[]>([])
@@ -460,7 +457,6 @@ export default function Leaderboard() {
       const exerciseTrend = initTrendData()
       const waterTrend = initTrendData()
       const intimacyTrend = initTrendData()
-      const medicationTrend = initTrendData()
       const bowelTrend = initTrendData()
 
       allRecords.forEach(record => {
@@ -487,9 +483,6 @@ export default function Leaderboard() {
           case 'intimacy':
             intimacyTrend[dayIndex][userId] = ((intimacyTrend[dayIndex][userId] as number) || 0) + 1
             break
-          case 'medication':
-            medicationTrend[dayIndex][userId] = ((medicationTrend[dayIndex][userId] as number) || 0) + 1
-            break
           case 'bowel':
             bowelTrend[dayIndex][userId] = ((bowelTrend[dayIndex][userId] as number) || 0) + 1
             break
@@ -502,7 +495,6 @@ export default function Leaderboard() {
         exercise: exerciseTrend,
         water: waterTrend,
         intimacy: intimacyTrend,
-        medication: medicationTrend,
         bowel: bowelTrend,
       })
 
@@ -1076,13 +1068,6 @@ export default function Leaderboard() {
                   icon={Heart}
                   gradient="from-pink-400 to-rose-500"
                   data={trendData.intimacy}
-                  yAxisLabel="次"
-                />
-                <TrendChart
-                  title="藥物趨勢"
-                  icon={Pill}
-                  gradient="from-blue-400 to-indigo-500"
-                  data={trendData.medication}
                   yAxisLabel="次"
                 />
                 <TrendChart

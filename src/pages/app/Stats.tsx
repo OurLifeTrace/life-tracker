@@ -360,11 +360,18 @@ export default function Stats() {
   const summaryStats = useMemo(() => {
     const totalRecords = filteredRecords.length
     const waterRecords = filteredRecords.filter((r) => r.type === 'water')
-    const totalWater = waterRecords.reduce((sum, r) => {
+
+    // Calculate water by day - only count days that have water records
+    const waterByDay: Record<string, number> = {}
+    waterRecords.forEach((r) => {
       const data = r.data as { amount?: number }
-      return sum + (data.amount || 0)
-    }, 0)
-    const avgWaterPerDay = waterRecords.length > 0 ? Math.round(totalWater / 7) : 0
+      const dateStr = r.recorded_at.split('T')[0]
+      waterByDay[dateStr] = (waterByDay[dateStr] || 0) + (data.amount || 0)
+    })
+
+    const daysWithWater = Object.keys(waterByDay).length
+    const totalWater = Object.values(waterByDay).reduce((sum, amount) => sum + amount, 0)
+    const avgWaterPerDay = daysWithWater > 0 ? Math.round(totalWater / daysWithWater) : 0
 
     const exerciseRecords = filteredRecords.filter((r) => r.type === 'exercise')
     const totalExercise = exerciseRecords.reduce((sum, r) => {
