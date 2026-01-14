@@ -167,8 +167,6 @@ export default function Stats() {
   // Sleep duration trend (past 30 days)
   const sleepDurationTrend = useMemo(() => {
     const sleepRecords = records.filter((r) => r.type === 'sleep')
-    console.log('Sleep records:', sleepRecords)
-    console.log('Sleep records data:', sleepRecords.map(r => r.data))
     const dailySleep: Record<string, { duration: number; count: number }> = {}
 
     // Helper to calculate duration from bedtime and wake_time
