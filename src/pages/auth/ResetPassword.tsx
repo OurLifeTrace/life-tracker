@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Lock, Sparkles, CheckCircle } from 'lucide-react'
+import { Lock, Sparkles, CheckCircle, Loader2, XCircle } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { supabase } from '@/lib/supabase'
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, '密碼至少需要 6 個字元'),
@@ -23,6 +24,34 @@ export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(true)
+  const [tokenError, setTokenError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const handleRecoveryToken = async () => {
+      // Parse the hash fragment for access_token
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      const type = hashParams.get('type')
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        // Set the session with the recovery token
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+
+        if (error) {
+          setTokenError(error.message)
+        }
+      }
+
+      setIsVerifying(false)
+    }
+
+    handleRecoveryToken()
+  }, [])
 
   const {
     register,
@@ -87,7 +116,30 @@ export default function ResetPassword() {
           transition={{ delay: 0.1 }}
           className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8"
         >
-          {isSuccess ? (
+          {isVerifying ? (
+            <div className="text-center py-8">
+              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">驗證中...</h2>
+              <p className="text-gray-500">正在確認您的重設連結</p>
+            </div>
+          ) : tokenError ? (
+            <div className="text-center py-8">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <XCircle className="w-10 h-10 text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">連結無效</h2>
+              <p className="text-gray-500 mb-2">{tokenError}</p>
+              <p className="text-gray-400 text-sm mb-8">重設連結可能已過期，請重新申請。</p>
+              <Link
+                to="/auth/forgot-password"
+                className="inline-block w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-shadow text-center"
+              >
+                重新申請重設連結
+              </Link>
+            </div>
+          ) : isSuccess ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}

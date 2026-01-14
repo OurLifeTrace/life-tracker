@@ -120,6 +120,16 @@ export default function Leaderboard() {
   const fetchLeaderboardData = async () => {
     setIsLoading(true)
     try {
+      // Use the database function to get leaderboard stats (bypasses RLS)
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_leaderboard_stats')
+
+      if (statsError) {
+        console.error('Error fetching leaderboard stats:', statsError)
+        // Fallback to old method if function doesn't exist
+      }
+
+      // Also get current user's own records for comparison
       const { data: recordsData } = await supabase
         .from('records')
         .select('user_id, type, recorded_at')
@@ -128,22 +138,95 @@ export default function Leaderboard() {
         .from('users')
         .select('id, username, avatar_url, settings')
 
-      if (!recordsData || !usersData) {
+      // Build user map from stats data if available, otherwise use usersData
+      let publicUsers: Array<{ id: string; username: string | null; avatar_url: string | null; settings?: any }> = []
+      let userRecordsMap: Map<string, Array<{ type: string; recorded_at: string }>> = new Map()
+
+      if (statsData && statsData.length > 0) {
+        // Use stats data from function
+        const userIds = new Set<string>()
+        statsData.forEach((row: any) => {
+          if (row.user_id && !userIds.has(row.user_id)) {
+            userIds.add(row.user_id)
+            publicUsers.push({
+              id: row.user_id,
+              username: row.username,
+              avatar_url: row.avatar_url,
+            })
+          }
+          // Build records from stats
+          if (row.user_id && row.record_type) {
+            if (!userRecordsMap.has(row.user_id)) {
+              userRecordsMap.set(row.user_id, [])
+            }
+            // Add fake records based on dates
+            if (row.record_dates) {
+              row.record_dates.forEach((date: string) => {
+                userRecordsMap.get(row.user_id)!.push({
+                  type: row.record_type,
+                  recorded_at: date,
+                })
+              })
+            }
+          }
+        })
+      } else if (usersData) {
+        // Fallback to old method
+        publicUsers = usersData.filter(u =>
+          u.settings?.show_in_leaderboard !== false
+        )
+      }
+
+      if (publicUsers.length === 0 && (!recordsData || recordsData.length === 0)) {
         setIsLoading(false)
         return
       }
 
-      const publicUsers = usersData.filter(u =>
-        u.settings?.show_in_leaderboard !== false
-      )
-
       const userMap = new Map(publicUsers.map(u => [u.id, u]))
+
+      // Merge own records if not in stats
+      if (recordsData) {
+        recordsData.forEach(record => {
+          if (!userRecordsMap.has(record.user_id)) {
+            userRecordsMap.set(record.user_id, [])
+          }
+          // Check if this record is already counted
+          const existingRecords = userRecordsMap.get(record.user_id)!
+          const dateStr = record.recorded_at.split('T')[0]
+          const exists = existingRecords.some(r =>
+            r.type === record.type && r.recorded_at === dateStr
+          )
+          if (!exists) {
+            userRecordsMap.get(record.user_id)!.push({
+              type: record.type,
+              recorded_at: dateStr,
+            })
+          }
+        })
+      }
+
+      // Convert to array format for processing
+      const allRecords: Array<{ user_id: string; type: string; recorded_at: string }> = []
+      userRecordsMap.forEach((records, odl_user_id) => {
+        records.forEach(r => {
+          allRecords.push({ user_id: odl_user_id, type: r.type, recorded_at: r.recorded_at })
+        })
+      })
 
       const userStats: Record<string, Record<string, number>> = {}
       const userRecordDates: Record<string, Set<string>> = {}
 
-      recordsData.forEach(record => {
-        if (!userMap.has(record.user_id)) return
+      // Use allRecords which combines stats data and own records
+      allRecords.forEach(record => {
+        // Add user to map if not exists (from stats data)
+        if (!userMap.has(record.user_id)) {
+          const existingUser = publicUsers.find(u => u.id === record.user_id)
+          if (existingUser) {
+            userMap.set(record.user_id, existingUser)
+          } else {
+            return
+          }
+        }
 
         if (!userStats[record.user_id]) {
           userStats[record.user_id] = { all: 0 }
@@ -208,11 +291,11 @@ export default function Leaderboard() {
 
       setLeaderboardData(leaderboards)
 
-      const totalRecords = recordsData.length
+      const totalRecords = allRecords.length
       const totalUsers = publicUsers.length
 
       const dayCounts: Record<string, number> = {}
-      recordsData.forEach(r => {
+      allRecords.forEach(r => {
         const day = new Date(r.recorded_at).toLocaleDateString('zh-TW', { weekday: 'long' })
         dayCounts[day] = (dayCounts[day] || 0) + 1
       })
@@ -257,7 +340,7 @@ export default function Leaderboard() {
         }
 
         // Count records per day for this user by type
-        recordsData.forEach(record => {
+        allRecords.forEach(record => {
           if (record.user_id === topUser.id) {
             const dateStr = record.recorded_at.split('T')[0]
             if (dailyRecords.hasOwnProperty(dateStr)) {
@@ -335,7 +418,7 @@ export default function Leaderboard() {
       const waterTrend = initTrendData()
       const intimacyTrend = initTrendData()
 
-      recordsData.forEach(record => {
+      allRecords.forEach(record => {
         const userId = record.user_id
         if (!top5Users.find(u => u.id === userId)) return
 
