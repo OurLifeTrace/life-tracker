@@ -52,7 +52,7 @@ interface UserActivity {
   }
   dailyRecords: Record<string, number>  // date string -> count
   dailyMeals: Record<string, number>    // date string -> meal count
-  dailySleep: Record<string, number>    // date string -> sleep hours
+  dailySleepDuration: Record<string, number>  // date string -> sleep duration in hours
   dailyExercise: Record<string, number> // date string -> exercise count
   dailyIntimacy: Record<string, number> // date string -> intimacy count
   totalRecords: number
@@ -148,6 +148,25 @@ export default function Leaderboard() {
       // Build user map from stats data if available, otherwise use usersData
       let publicUsers: Array<{ id: string; username: string | null; avatar_url: string | null; settings?: any }> = []
       let userRecordsMap: Map<string, Array<{ type: string; recorded_at: string }>> = new Map()
+      // Store sleep duration data: user_id -> date -> duration in hours
+      const userSleepDurations: Map<string, Map<string, number>> = new Map()
+
+      // Helper to calculate duration from bedtime and wake_time
+      const calculateSleepDuration = (bedtime: string, wakeTime: string): number => {
+        if (!bedtime || !wakeTime) return 0
+        const [bedHour, bedMin] = bedtime.split(':').map(Number)
+        const [wakeHour, wakeMin] = wakeTime.split(':').map(Number)
+
+        let bedMinutes = bedHour * 60 + bedMin
+        let wakeMinutes = wakeHour * 60 + wakeMin
+
+        // If wake time is earlier than bed time, assume it's the next day
+        if (wakeMinutes <= bedMinutes) {
+          wakeMinutes += 24 * 60
+        }
+
+        return (wakeMinutes - bedMinutes) / 60 // Return hours
+      }
 
       if (statsData && statsData.length > 0) {
         // Use stats data from function
@@ -173,6 +192,21 @@ export default function Leaderboard() {
                   type: row.record_type,
                   recorded_at: date,
                 })
+              })
+            }
+            // Process sleep durations
+            if (row.record_type === 'sleep' && row.sleep_durations) {
+              if (!userSleepDurations.has(row.user_id)) {
+                userSleepDurations.set(row.user_id, new Map())
+              }
+              const sleepMap = userSleepDurations.get(row.user_id)!
+              row.sleep_durations.forEach((sd: { date: string; bedtime: string; wake_time: string }) => {
+                if (sd.bedtime && sd.wake_time) {
+                  const duration = calculateSleepDuration(sd.bedtime, sd.wake_time)
+                  const dateStr = sd.date.split('T')[0]
+                  // Add to existing duration for that day (in case multiple sleep records)
+                  sleepMap.set(dateStr, (sleepMap.get(dateStr) || 0) + duration)
+                }
               })
             }
           }
@@ -332,9 +366,12 @@ export default function Leaderboard() {
         const userData = userMap.get(topUser.id)
         const dailyRecords: Record<string, number> = {}
         const dailyMeals: Record<string, number> = {}
-        const dailySleep: Record<string, number> = {}
+        const dailySleepDuration: Record<string, number> = {}
         const dailyExercise: Record<string, number> = {}
         const dailyIntimacy: Record<string, number> = {}
+
+        // Get sleep duration data for this user
+        const userSleepMap = userSleepDurations.get(topUser.id)
 
         // Initialize all days with 0
         for (let i = 0; i <= 30; i++) {
@@ -343,7 +380,7 @@ export default function Leaderboard() {
           const dateStr = date.toISOString().split('T')[0]
           dailyRecords[dateStr] = 0
           dailyMeals[dateStr] = 0
-          dailySleep[dateStr] = 0
+          dailySleepDuration[dateStr] = userSleepMap?.get(dateStr) || 0
           dailyExercise[dateStr] = 0
           dailyIntimacy[dateStr] = 0
         }
@@ -358,9 +395,6 @@ export default function Leaderboard() {
               // Count by type
               if (record.type === 'meal') {
                 dailyMeals[dateStr] = (dailyMeals[dateStr] || 0) + 1
-              } else if (record.type === 'sleep') {
-                // For sleep, we could track duration but for simplicity count records
-                dailySleep[dateStr] = (dailySleep[dateStr] || 0) + 1
               } else if (record.type === 'exercise') {
                 dailyExercise[dateStr] = (dailyExercise[dateStr] || 0) + 1
               } else if (record.type === 'intimacy') {
@@ -378,7 +412,7 @@ export default function Leaderboard() {
           },
           dailyRecords,
           dailyMeals,
-          dailySleep,
+          dailySleepDuration,
           dailyExercise,
           dailyIntimacy,
           totalRecords: topUser.total_records,
@@ -505,10 +539,12 @@ export default function Leaderboard() {
     return count === 4 ? 'bg-yellow-400' : 'bg-yellow-500'
   }
 
-  // Get sleep compliance color (1 record = good)
-  const getSleepColor = (count: number) => {
-    if (count === 0) return 'bg-gray-100'
-    return 'bg-indigo-500'
+  // Get sleep compliance color based on duration (6-8h = good)
+  const getSleepColor = (duration: number) => {
+    if (duration === 0) return 'bg-gray-100'
+    if (duration < 6) return duration < 4 ? 'bg-red-500' : 'bg-red-300'  // Insufficient
+    if (duration <= 8) return 'bg-emerald-500'  // Good (6-8h)
+    return duration <= 10 ? 'bg-yellow-400' : 'bg-yellow-500'  // Over
   }
 
   // Get exercise color (green scale)
@@ -540,7 +576,7 @@ export default function Leaderboard() {
     title: string
     icon: React.ComponentType<{ className?: string }>
     gradient: string
-    dataKey: 'dailyRecords' | 'dailyMeals' | 'dailySleep' | 'dailyExercise' | 'dailyIntimacy'
+    dataKey: 'dailyRecords' | 'dailyMeals' | 'dailySleepDuration' | 'dailyExercise' | 'dailyIntimacy'
     colorFn: (count: number) => string
     legendItems: { color: string; label: string }[]
     tooltipSuffix: string
@@ -597,13 +633,16 @@ export default function Leaderboard() {
                   <div className="flex-1 flex gap-[2px]">
                     {days.map((day) => {
                       const count = activity[dataKey][day] || 0
+                      const displayValue = dataKey === 'dailySleepDuration'
+                        ? (count > 0 ? count.toFixed(1) : '0')
+                        : count
                       return (
                         <div
                           key={day}
                           className={`flex-1 h-5 rounded-sm ${colorFn(count)} cursor-default group relative`}
                         >
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                            {new Date(day).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}: {count}{tooltipSuffix}
+                            {new Date(day).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}: {displayValue}{tooltipSuffix}
                           </div>
                         </div>
                       )
@@ -665,16 +704,18 @@ export default function Leaderboard() {
           tooltipSuffix=" 餐"
         />
         <HeatmapCard
-          title="本月睡眠記錄"
+          title="本月睡眠時長"
           icon={Moon}
           gradient="from-indigo-400 to-purple-500"
-          dataKey="dailySleep"
+          dataKey="dailySleepDuration"
           colorFn={getSleepColor}
           legendItems={[
-            { color: 'bg-gray-100', label: '無記錄' },
-            { color: 'bg-indigo-500', label: '有記錄' },
+            { color: 'bg-gray-100', label: '無' },
+            { color: 'bg-red-400', label: '<6h' },
+            { color: 'bg-emerald-500', label: '6-8h' },
+            { color: 'bg-yellow-400', label: '>8h' },
           ]}
-          tooltipSuffix=" 筆"
+          tooltipSuffix="h"
         />
         <HeatmapCard
           title="本月運動活躍度"
