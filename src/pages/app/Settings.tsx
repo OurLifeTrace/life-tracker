@@ -8,15 +8,18 @@ import {
   ChevronRight,
   Mail,
   Save,
+  Lock,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavigate } from 'react-router-dom'
 import AvatarUpload from '@/components/common/AvatarUpload'
 
-type SettingsSection = 'profile' | 'notifications' | 'privacy' | null
+type SettingsSection = 'profile' | 'notifications' | 'privacy' | 'security' | null
 
 export default function Settings() {
-  const { user, logout, updateProfile } = useAuthStore()
+  const { user, logout, updateProfile, updatePassword } = useAuthStore()
   const navigate = useNavigate()
   const [activeSection, setActiveSection] = useState<SettingsSection>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -25,6 +28,11 @@ export default function Settings() {
   // Profile form state
   const [username, setUsername] = useState(user?.username || '')
   const [bio, setBio] = useState(user?.bio || '')
+
+  // Password form state
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   // Settings state
   const [notifications, setNotifications] = useState(user?.settings?.notifications ?? true)
@@ -78,6 +86,33 @@ export default function Settings() {
     setIsLoading(false)
   }
 
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: '密碼至少需要 6 個字元' })
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: '兩次輸入的密碼不一致' })
+      return
+    }
+
+    setIsLoading(true)
+    setMessage(null)
+
+    const { error } = await updatePassword(newPassword)
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message })
+    } else {
+      setMessage({ type: 'success', text: '密碼已成功更新' })
+      setNewPassword('')
+      setConfirmPassword('')
+    }
+
+    setIsLoading(false)
+  }
+
   const menuItems = [
     {
       id: 'profile' as const,
@@ -102,6 +137,14 @@ export default function Settings() {
       description: '控制資料可見性',
       color: 'text-emerald-500',
       bg: 'bg-emerald-50',
+    },
+    {
+      id: 'security' as const,
+      icon: Lock,
+      label: '帳號安全',
+      description: '更改密碼',
+      color: 'text-red-500',
+      bg: 'bg-red-50',
     },
   ]
 
@@ -341,6 +384,101 @@ export default function Settings() {
               <>
                 <Save className="w-5 h-5" />
                 儲存變更
+              </>
+            )}
+          </motion.button>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (activeSection === 'security') {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setActiveSection(null)
+              setMessage(null)
+              setNewPassword('')
+              setConfirmPassword('')
+            }}
+            className="p-2 hover:bg-gray-100 rounded-lg"
+          >
+            <ChevronRight className="w-5 h-5 rotate-180" />
+          </motion.button>
+          <h1 className="text-2xl font-bold text-gray-800">帳號安全</h1>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                新密碼
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="輸入新密碼（至少 6 個字元）"
+                  className="w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                確認新密碼
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="再次輸入新密碼"
+                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          {message && (
+            <div className={`p-3 rounded-xl text-sm ${
+              message.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+            }`}>
+              {message.text}
+            </div>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleChangePassword}
+            disabled={isLoading || !newPassword || !confirmPassword}
+            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                更新密碼
               </>
             )}
           </motion.button>
