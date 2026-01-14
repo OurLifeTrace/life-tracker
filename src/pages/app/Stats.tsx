@@ -369,9 +369,12 @@ export default function Stats() {
       waterByDay[dateStr] = (waterByDay[dateStr] || 0) + (data.amount || 0)
     })
 
-    const daysWithWater = Object.keys(waterByDay).length
-    const totalWater = Object.values(waterByDay).reduce((sum, amount) => sum + amount, 0)
-    const avgWaterPerDay = daysWithWater > 0 ? Math.round(totalWater / daysWithWater) : 0
+    // Get the most recent 7 days with water records
+    const sortedDates = Object.keys(waterByDay).sort((a, b) => b.localeCompare(a))
+    const recent7Days = sortedDates.slice(0, 7)
+    const totalWaterRecent7 = recent7Days.reduce((sum, date) => sum + waterByDay[date], 0)
+    const daysCount = recent7Days.length
+    const avgWaterPerDay = daysCount > 0 ? Math.round(totalWaterRecent7 / daysCount) : 0
 
     const exerciseRecords = filteredRecords.filter((r) => r.type === 'exercise')
     const totalExercise = exerciseRecords.reduce((sum, r) => {
