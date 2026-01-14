@@ -27,12 +27,12 @@ function App() {
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="forgot-password" element={<ForgotPassword />} />
-          <Route path="reset-password" element={<ResetPassword />} />
           <Route index element={<Navigate to="login" replace />} />
         </Route>
 
-        {/* Standalone Auth Pages (no layout wrapper) */}
+        {/* Standalone Auth Pages (no layout wrapper, allows authenticated access) */}
         <Route path="/auth/verify-email" element={<VerifyEmail />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
 
         {/* App Routes (Protected) */}
         <Route path="/app" element={<AppLayout />}>
