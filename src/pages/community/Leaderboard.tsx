@@ -142,12 +142,8 @@ export default function Leaderboard() {
       let publicUsers: Array<{ id: string; username: string | null; avatar_url: string | null; settings?: any }> = []
       let userRecordsMap: Map<string, Array<{ type: string; recorded_at: string }>> = new Map()
 
-      console.log('Stats data from function:', statsData)
-      console.log('Stats error:', statsError)
-
       if (statsData && statsData.length > 0) {
         // Use stats data from function
-        console.log('Using stats data, count:', statsData.length)
         const userIds = new Set<string>()
         statsData.forEach((row: any) => {
           if (row.user_id && !userIds.has(row.user_id)) {
@@ -181,11 +177,7 @@ export default function Leaderboard() {
         )
       }
 
-      console.log('Public users:', publicUsers)
-      console.log('User records map size:', userRecordsMap.size)
-
       if (publicUsers.length === 0 && (!recordsData || recordsData.length === 0)) {
-        console.log('No data, returning early')
         setIsLoading(false)
         return
       }
