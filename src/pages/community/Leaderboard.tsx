@@ -157,12 +157,17 @@ export default function Leaderboard() {
         let bedMinutes = bedHour * 60 + bedMin
         let wakeMinutes = wakeHour * 60 + wakeMin
 
-        // If wake time is earlier than bed time, assume it's the next day
-        if (wakeMinutes <= bedMinutes) {
-          wakeMinutes += 24 * 60
+        // Calculate duration assuming same day first
+        let duration = wakeMinutes - bedMinutes
+
+        // If negative, wake time is on the next day
+        if (duration < 0) {
+          duration += 24 * 60
         }
 
-        return (wakeMinutes - bedMinutes) / 60 // Return hours
+        // Cap at 16 hours max - if longer, probably wrong calculation
+        const hours = duration / 60
+        return Math.min(hours, 16)
       }
 
       if (statsData && statsData.length > 0) {
